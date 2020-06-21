@@ -1,0 +1,5 @@
+import org.json.JSONObject;
+
+public interface CreatorInterface<A> {
+    public A crear(JSONObject json)throws org.json.JSONException;
+}

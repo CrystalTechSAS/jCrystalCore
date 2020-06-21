@@ -1,0 +1,23 @@
+
+import java.io.InputStream;
+
+public class JCFile{
+	public String file;
+	public InputStream stream;
+	public String mimeType;
+	public JCFile(String file){
+		this.file = file;
+		int ind = file.lastIndexOf('.');
+		if(ind != -1){
+			String ext = file.substring(ind + 1);
+			mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+		}
+	}
+	public JCFile(InputStream stream){
+		this.stream = stream;
+	}
+	public final JCFile mimeType(String mimeType){
+		this.mimeType = mimeType;
+		return this;
+	}
+}

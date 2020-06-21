@@ -1,0 +1,59 @@
+import android.content.Context;
+import android.content.SharedPreferences;
+
+/**
+ * Created by g on 6/14/16.
+ */
+public class SimpleStore {
+    public static String getString(Context context, String name, String valor){
+        String ret = context.getSharedPreferences("vault", Context.MODE_PRIVATE).getString(name, null);
+        return ret==null?valor : ret;
+    }
+    public static String getString(Context context, String name){
+        return context.getSharedPreferences("vault", Context.MODE_PRIVATE).getString(name, null);
+    }
+    public static void putString(Context context, String name, String valor){
+        SharedPreferences.Editor editor = context.getSharedPreferences("vault", Context.MODE_PRIVATE).edit();
+        if(valor == null)
+            editor.remove(name);
+        else
+            editor.putString(name, valor);
+        editor.commit();
+    }
+
+    public static long getLong(Context context, String name){
+        return context.getSharedPreferences("vault", Context.MODE_PRIVATE).getLong(name, -1L);
+    }
+    public static void putLong(Context context, String name, long valor){
+        SharedPreferences.Editor editor = context.getSharedPreferences("vault", Context.MODE_PRIVATE).edit();
+        editor.putLong(name, valor);
+        editor.commit();
+    }
+    public static int getInt(Context context, String name){
+        return context.getSharedPreferences("vault", Context.MODE_PRIVATE).getInt(name, 0);
+    }
+    public static int incInt(Context context, String name){
+        SharedPreferences sP = context.getSharedPreferences("vault", Context.MODE_PRIVATE);
+        int valor = sP.getInt(name, 0) + 1;
+        SharedPreferences.Editor editor = sP.edit();
+        editor.putInt(name, valor);
+        editor.commit();
+        return valor;
+    }
+    public static void putInt(Context context, String name, int valor){
+        SharedPreferences.Editor editor = context.getSharedPreferences("vault", Context.MODE_PRIVATE).edit();
+        editor.putInt(name, valor);
+        editor.commit();
+    }
+
+    public static boolean getBoolean(Context context, String name, boolean valor){
+        return context.getSharedPreferences("vault", Context.MODE_PRIVATE).getBoolean(name,valor);
+
+    }
+    public static void putBoolean(Context context, String name, boolean valor){
+        SharedPreferences.Editor editor = context.getSharedPreferences("vault", Context.MODE_PRIVATE).edit();
+        editor.putBoolean(name, valor);
+        editor.commit();
+    }
+
+}

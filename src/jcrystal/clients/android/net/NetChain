@@ -1,0 +1,41 @@
+import android.os.AsyncTask;
+import android.app.Activity;
+import androidx.fragment.app.Fragment;
+import jcrystal.mobile.net.utils.RequestError;
+
+public class NetChain implements jcrystal.mobile.net.utils.OnErrorListener{
+	private java.util.ArrayList<RequestError> errors = new java.util.ArrayList<>(); 
+	private java.util.ArrayList<NetTask> tasks = new java.util.ArrayList<>(); 
+	public final Activity activity;
+	public final Fragment fragment;
+		
+    private int count = 0;
+    private Runnable next;
+    public NetChain(Activity activity){
+		this.activity = activity;
+		this.fragment = null;
+	}
+	public NetChain(Fragment fragment){
+		this.fragment = fragment;
+		this.activity = null;
+	}
+	public void add(NetTask task){
+		tasks.add(task);
+		task.$chain = this;
+		count++;
+	}	
+	public void then(Runnable next){
+		this.next = next;
+		for(NetTask task : tasks)
+			task.execute((String[])null);
+	}
+	public synchronized final void endTask(){
+		count--;
+		if(count == 0){
+			next.run();
+		}
+	}
+	public void onError(RequestError error){
+		errors.add(error);
+	}
+}

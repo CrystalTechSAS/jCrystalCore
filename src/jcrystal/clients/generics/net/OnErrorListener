@@ -1,0 +1,3 @@
+public interface OnErrorListener {
+    public void onError(RequestError error);
+}

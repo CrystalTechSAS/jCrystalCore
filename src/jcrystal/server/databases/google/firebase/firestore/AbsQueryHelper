@@ -1,0 +1,12 @@
+public abstract class AbsQueryHelper{
+	protected com.google.cloud.firestore.Query query;
+	
+	@SuppressWarnings("unchecked")
+	protected AbsQueryHelper(com.google.cloud.firestore.Query query){
+		this.query = query;
+	}
+	public void limit(int limit){
+		query.limit(limit);
+	}
+}
+

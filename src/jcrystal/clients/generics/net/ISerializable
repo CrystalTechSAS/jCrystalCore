@@ -1,0 +1,3 @@
+public interface ISerializable {
+    void toJson(java.io.PrintWriter _pw);
+}

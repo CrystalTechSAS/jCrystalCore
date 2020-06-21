@@ -1,0 +1,24 @@
+package #PACKAGE;
+import android.content.Context;
+import android.content.pm.PackageInfo;
+public class JCrystalApp{
+    private static Context context;
+    public static boolean DEBUG = false;
+    public static String APP_VERSION = "None";
+	public static int APP_CODE = 0;
+	
+    public static void setAppContext(Context context) {
+        JCrystalApp.context = context;
+        try {
+            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            APP_VERSION = pInfo.versionName;
+            APP_CODE = pInfo.versionCode;
+        } catch (Exception e) {
+			APP_VERSION = "Error";
+        }
+    }
+
+    public static Context getAppContext() {
+        return context;
+    }
+}

@@ -1,0 +1,67 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
+
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
+
+public class ApiFutureTransform<V, T> implements ApiFuture<T>{
+	final ApiFuture<V> origin;
+	final Function<V, T> transform;
+	public ApiFutureTransform(ApiFuture<V> origin, Function<V, T> transform) {
+		this.transform = transform;
+		this.origin = origin;
+	}
+	@Override
+	public boolean cancel(boolean mayInterruptIfRunning) {
+		return origin.cancel(mayInterruptIfRunning);
+	}
+	@Override
+	public T get() throws InterruptedException, ExecutionException {
+		return transform.apply(origin.get());
+	}
+	@Override
+	public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+		return transform.apply(origin.get(timeout, unit));
+	}
+	@Override
+	public boolean isCancelled() {
+		return origin.isCancelled();
+	}
+	@Override
+	public boolean isDone() {
+		return origin.isDone();
+	}
+	@Override
+	public void addListener(Runnable listener, Executor executor) {
+		origin.addListener(listener, executor);
+	}
+	public static <V, T> ApiFutureTransform<List<V>, List<T>> forList(ApiFuture<List<V>> origin, Function<V, T> transform){
+		return new ApiFutureTransform<List<V>, List<T>>(origin, list->{
+			ArrayList<T> ret = new ArrayList<T>(list.size());
+			for(V v : list)
+				ret.add(transform.apply(v));
+			return ret;
+		});
+	}
+	public static <V, T> ApiFutureTransform<QuerySnapshot, List<T>> forQuery(ApiFuture<QuerySnapshot> origin, Function<DocumentSnapshot, T> transform){
+		return new ApiFutureTransform<QuerySnapshot, List<T>>(origin, list->{
+			ArrayList<T> ret = new ArrayList<T>(list.size());
+			for(DocumentSnapshot v : list.getDocuments())
+				ret.add(transform.apply(v));
+			return ret;
+		});
+	}
+	public static <V, T> ApiFutureTransform<QuerySnapshot, T> first(ApiFuture<QuerySnapshot> origin, Function<DocumentSnapshot, T> transform){
+		return new ApiFutureTransform<QuerySnapshot, T>(origin, list->{
+			for(DocumentSnapshot v : list.getDocuments())
+				return transform.apply(v);
+			return null;
+		});
+	}
+}

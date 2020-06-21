@@ -1,0 +1,95 @@
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+
+public class MyReader extends BufferedReader{
+	private boolean replacedOut = false;
+	public MyReader(String file, String out) throws FileNotFoundException {
+		super(new FileReader(file));
+		System.setOut(new PrintStream(out));
+		replacedOut = true;
+	}
+	public MyReader(String file) throws FileNotFoundException {
+		super(new FileReader(file));
+	}
+	public MyReader() {
+		super(new InputStreamReader(System.in));
+	}
+	public int readInt(){
+		try{
+			return Integer.parseInt(readLine());
+		}catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	public int[] readIntA(int size){
+		try{
+			int[] ret = new int[size];
+			for(int e = 0; e < size; e++)
+				ret[e] = Integer.parseInt(readLine());
+			return ret;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
+	}
+	public int[] readIntA(int[] arr){
+		try {
+			return readIntA(arr, arr.length);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	public int[] readIntA(int[] arr, int size){
+		try {
+			for(int e = 0; e < size; e++)
+				arr[e] = Integer.parseInt(readLine());
+			return arr;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public long[] readLongA(int size){
+		try {
+			long[] ret = new long[size];
+			for(int e = 0; e < size; e++)
+				ret[e] = Long.parseLong(readLine());
+			return ret;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	public long[] readLongA(long[] arr){
+		try {
+			return readLongA(arr, arr.length);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	public long[] readLongA(long[] arr, int size){
+		try {
+			for(int e = 0; e < size; e++)
+				arr[e] = Long.parseLong(readLine());
+			return arr;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	public long readLong(){
+		try {
+			return Long.parseLong(readLine());
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	@Override
+	public void close() throws IOException {
+		super.close();
+		if(replacedOut)
+			System.out.close();
+	}
+}

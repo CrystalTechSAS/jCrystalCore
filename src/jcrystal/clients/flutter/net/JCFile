@@ -1,0 +1,22 @@
+import 'package:mime_type/mime_type.dart';
+
+class JCFile{
+	String file;
+	//InputStream stream;
+	String mimeType;
+	JCFile(String file){
+		this.file = file;
+		int ind = file.lastIndexOf('.');
+		if(ind != -1){
+			String ext = file.substring(ind + 1);
+			mimeType = mime("hola."+ext);
+		}
+	}
+	/*JCFile(InputStream stream){
+		this.stream = stream;
+	}*/
+	JCFile setMimeType(String mimeType){
+		this.mimeType = mimeType;
+		return this;
+	}
+}

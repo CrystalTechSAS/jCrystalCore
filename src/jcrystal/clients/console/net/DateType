@@ -1,0 +1,19 @@
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+
+public enum DateType {
+    DATE_TIME("yyyyMMddHHmmZ"),
+    TIME("HHmmZ"),
+    DATE("yyyyMMddZ"),
+    DATE_SECONDS("yyyyMMddHHmmssZ"),
+    TIME_SECONDS("HHmmssZ"),
+    DATE_MILIS("yyyyMMddHHmmssSSSZ"),
+    TIME_MILIS("HmmssSSSZ");
+
+    public final SimpleDateFormat FORMAT;
+    public final String format;
+    DateType(String format){
+        FORMAT = new SimpleDateFormat(this.format = format);
+    }
+}

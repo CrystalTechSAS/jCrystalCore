@@ -1,0 +1,82 @@
+private final com.google.cloud.firestore.FirestoreOptions firestoreOptions;
+public final com.google.cloud.firestore.Firestore service;
+private com.google.cloud.firestore.Transaction txn;
+protected GoogleFirestore(String projectId){
+	this.firestoreOptions = com.google.cloud.firestore.FirestoreOptions.getDefaultInstance().toBuilder().setProjectId(projectId).build();
+	this.service = firestoreOptions.getService();
+}
+public final <T> void withinTxn(int retries, java.util.function.Supplier<T> run){
+	service.runTransaction(transaction->{
+		txn = transaction;
+		return run.get();
+	}, com.google.cloud.firestore.TransactionOptions.create(retries));
+}
+public final <T> void withinTxn(java.util.function.Supplier<T> run){
+	withinTxn(5, run);
+}
+public final void withinTxn(int retries, Runnable run){
+	service.runTransaction(transaction->{
+		txn = transaction;
+		run.run();
+		return null;
+	}, com.google.cloud.firestore.TransactionOptions.create(retries));
+}
+public final void withinTxn(Runnable run){
+	withinTxn(5, run);
+}
+public com.google.api.core.ApiFuture<com.google.cloud.firestore.DocumentReference> create(com.google.cloud.firestore.CollectionReference collection, java.util.Map<String, Object> data) {
+	if(txn != null) {
+		com.google.cloud.firestore.DocumentReference ref = collection.document(); 
+		txn.create(ref, data);
+		return com.google.api.core.ApiFutures.immediateFuture(ref);
+	}else {
+		return collection.add(data);
+	}
+}
+public com.google.api.core.ApiFuture<?> create(com.google.cloud.firestore.DocumentReference document, java.util.Map<String, Object> data) {
+	if(txn != null) {
+		txn.create(document, data);
+		return com.google.api.core.ApiFutures.immediateFuture(document);
+	}else {
+		return document.create(data);
+	}
+}
+public void set(com.google.cloud.firestore.DocumentReference document, java.util.Map<String, Object> data) {
+	if(txn != null) {
+		txn.set(document, data);
+	}else {
+		document.set(data);
+	}
+}
+public com.google.api.core.ApiFuture<?> update(com.google.cloud.firestore.DocumentReference document, java.util.Map<String, Object> data) {
+	if(txn != null) {
+		txn.update(document, data);
+		return com.google.api.core.ApiFutures.immediateFuture(null);
+	}else {
+		return document.update(data);
+	}
+}
+public void delete(com.google.cloud.firestore.DocumentReference document) {
+	if(txn != null) {
+		txn.delete(document);
+	}else {
+		document.delete();
+	}
+}
+public com.google.api.core.ApiFuture<java.util.List<com.google.cloud.firestore.DocumentSnapshot>> getAll(java.util.List<String> keys) {
+	if(txn != null) {
+		return txn.getAll(keys.stream().map(service::document).toArray(size -> new com.google.cloud.firestore.DocumentReference[size]));
+	}else
+		return service.getAll(keys.stream().map(service::document).toArray(size -> new com.google.cloud.firestore.DocumentReference[size]));
+}
+public com.google.api.core.ApiFuture<java.util.List<com.google.cloud.firestore.WriteResult>> deleteBatch(java.util.stream.Stream<String> entities){
+	com.google.cloud.firestore.WriteBatch batch = service.batch();
+	entities.forEach(key -> batch.delete(service.document(key)));
+	return batch.commit();
+}
+public com.google.api.core.ApiFuture<com.google.cloud.firestore.QuerySnapshot> doQuery(com.google.cloud.firestore.Query query) {
+	if(txn != null) {
+		return txn.get(query);
+	}else
+		return query.get();
+}

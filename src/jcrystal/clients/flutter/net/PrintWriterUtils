@@ -1,0 +1,68 @@
+import 'dart:async';
+import 'package:flutter_decopropiedad/jcrystal/mobile/net/NetUtils.dart';
+class PrintWriterUtils {
+
+	static void print(PrintWriter pw, String s1, [dynamic s2, String s3, String s4]) {
+		pw.print(s1);
+		if(s2 != null){
+			pw.print(s2.toString());
+			if(s3 != null){
+				pw.print(s3);
+				if(s4 != null){
+					pw.print(s4);
+				}
+			}
+		}
+	}
+/*
+	static boolean printJsonProp(PrintWriter pw, bool first, String s1, String s2) {
+		if(s2!=null) {
+			if(!first)
+				pw.print(",");
+			pw.print(s1);
+			pw.print(JSONUtils.jsonQuote(s2));
+			return false;
+		}
+		return first;
+	}
+	static boolean printJsonProp(PrintWriter pw, bool first, String s1, Long s2) {
+		if(s2!=null) {
+			if(!first)
+				pw.print(",");
+			pw.print(s1);
+			pw.print(s2.toString());
+			return false;
+		}
+		return first;
+	}
+	static boolean printJsonProp(PrintWriter pw, bool first, String s1, Double s2) {
+		if(s2!=null) {
+			if(!first)
+				pw.print(",");
+			pw.print(s1);
+			pw.print(s2.toString());
+			return false;
+		}
+		return first;
+	}
+	static boolean printJsonProp(PrintWriter pw, bool first, String s1, Integer s2) {
+		if(s2!=null) {
+			if(!first)
+				pw.print(",");
+			pw.print(s1);
+			pw.print(s2.toString());
+			return false;
+		}
+		return first;
+	}
+	static boolean printJsonProp(PrintWriter pw, bool first, String s1, Boolean s2) {
+		if(s2!=null) {
+			if(!first)
+				pw.print(",");
+			pw.print(s1);
+			pw.print(s2.toString());
+			return false;
+		}
+		return first;
+	}*/
+}
