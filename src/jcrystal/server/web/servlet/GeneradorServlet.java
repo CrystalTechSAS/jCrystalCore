@@ -301,7 +301,7 @@ public class GeneradorServlet {
 			$("import static jcrystal.utils.ServletUtils.*;");
 			$("@javax.servlet.annotation.WebServlet(name = \"ServletPush\",urlPatterns = {\""+context.input.SERVER.WEB.servlet_root_path +"/pushs/*\"})");
 			$("public class ServletPush extends HttpServlet", () -> {
-				$("private static final long serialVersionUID = " + context.back.random.nextLong() + "L;");
+				$("private static final long serialVersionUID = " + context.random.nextLong() + "L;");
 				$("private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger(ServletPush.class.getName());");
 				$append(GETS);
 				$append(POSTS);

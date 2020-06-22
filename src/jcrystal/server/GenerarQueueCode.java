@@ -44,7 +44,7 @@ public class GenerarQueueCode {
 			$("import static jcrystal.utils.ServletUtils.*;");
 			$("@javax.servlet.annotation.WebServlet(name = \"ServletjCrystalAsync\",urlPatterns = {\"/jcrystal/async\"})");
 			$("public class ServletJCrystal extends HttpServlet", () -> {
-				$("private static final long serialVersionUID = " + context.back.random.nextLong() + "L;");
+				$("private static final long serialVersionUID = " + context.random.nextLong() + "L;");
 				$("private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger(ServletJCrystal.class.getName());");
 				$("public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException",() -> {
 					$if("(!\"0.1.0.2\".equals(req.getRemoteAddr()) && com.google.appengine.api.utils.SystemProperty.environment.value() == com.google.appengine.api.utils.SystemProperty.Environment.Value.Production)", ()->{

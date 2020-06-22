@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServlet;
 import jcrystal.clients.ClientTagGenerator;
 import jcrystal.configs.clients.ResourceType;
 import jcrystal.lang.Language;
-import jcrystal.main.data.ClientBackData;
 import jcrystal.main.data.ClientContext;
 import jcrystal.main.data.ClientInput;
 import jcrystal.main.data.ClientOutput;
@@ -35,8 +34,8 @@ public class MainGenerator {
 	
 	private BackendGenerator backendGenerator;
 	
-	public MainGenerator(ClientBackData back, ClientInput input, ClientOutput output) {
-		context = new ClientContext(back, input, output);
+	public MainGenerator(ClientInput input, ClientOutput output) {
+		context = new ClientContext(input, output);
 		backendGenerator = new BackendGenerator(context);
 	}
 	
