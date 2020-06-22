@@ -11,7 +11,7 @@ import jcrystal.configs.clients.ResourceType;
 import jcrystal.lang.Language;
 import jcrystal.main.data.ClientContext;
 import jcrystal.main.data.ClientInput;
-import jcrystal.main.data.ClientOutput;
+import jcrystal.main.data.IClientOutput;
 import jcrystal.model.server.db.EntityClass;
 import jcrystal.model.server.db.IndexableField;
 import jcrystal.model.server.db.EntityIndexModel;
@@ -34,7 +34,7 @@ public class MainGenerator {
 	
 	private BackendGenerator backendGenerator;
 	
-	public MainGenerator(ClientInput input, ClientOutput output) {
+	public MainGenerator(ClientInput input, IClientOutput output) {
 		context = new ClientContext(input, output);
 		backendGenerator = new BackendGenerator(context);
 	}
