@@ -201,9 +201,9 @@ public class JQueryClient extends AbsClientGenerator<Client> {
 										$("onError({type: \"SERVER_ERROR\", code: $xhr.status, msg: $xhr.response});");
 									},";");
 									$("$xhr.onload = function()",()->{
+										$("$('[data-" + name + "-" + methodName + "]').removeClass('loading');");
 										$if("$xhr.status >= 200 && $xhr.status < 300",()->{
 											$("var response = $xhr.response;");
-											$("$('[data-" + name + "-" + methodName + "]').removeClass('loading');");
 											if(m.tipoRuta.isPostLike() && m.getReturnType().is(FileDownloadDescriptor.class)) {
 												$("onSuccess(response, $xhr.getResponseHeader('Content-Disposition').match(/filename[^;=\\n]*=((['\"]).*?\\2|[^;\\n]*)/)[1]);");
 											}else {
