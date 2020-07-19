@@ -57,24 +57,26 @@ public class GeneradorEntidad extends AbsEntityGenerator<WebClientTypescript>{
 					lastLevel[0] = level;
 					$("import {"+className+"} from \"./"+className+"\"");
 				});
-				
 				final List<EntityField> definitiveFields = ListUtils.join(client.descriptor.getFields(entidad).get(null), new ArrayList<EntityField>(client.descriptor.getFields(entidad).get(levels.last())));
+				for(final EntityField f : definitiveFields){
+					f.type().iterate(type->{
+						if(type.isEnum() || type.isJAnnotationPresent(CrystalDate.class))
+							$import(type);
+						else if (type.isAnnotationPresent(jEntity.class)) {
+							EntityClass target = client.context.data.entidades.get(type); 
+							if(target.key == null || !target.key.isSimple())
+								$import(type);
+						}
+					});
+				}
+				client.requiredClasses.addAll(imports);
+				$imports();
 				
 				$("declare var moment: any;");
 				$("export class " + entidad.clase.getSimpleName()+" implements "+interfaces, ()->{
 					HashSet<String> fields = new HashSet<String>();
 					for(final EntityField f : definitiveFields){
 						if(fields.add(f.name())) {
-							f.type().iterate(type->{
-								if(type.isEnum() || type.isJAnnotationPresent(CrystalDate.class))
-									$import(type);
-								else if (type.isAnnotationPresent(jEntity.class)) {
-									EntityClass target = client.context.data.entidades.get(type); 
-									if(target.key == null || !target.key.isSimple())
-										$import(type);
-								}
-							});
-							
 							if(f.type().isPrimitive()) {
 								if(f.type().is(boolean.class))
 									$("public "+f.name() + " : " + $($convert(f.type()))+ " = false;");
@@ -140,7 +142,7 @@ public class GeneradorEntidad extends AbsEntityGenerator<WebClientTypescript>{
 						});
 				});
 			}
-			$("export module " + entidad.clase.getSimpleName(), ()->{
+			$("export module " + entidad.clase.getSimpleName() + "Utils", ()->{
 				if(client.descriptor.getFields(entidad).fields.keySet().stream().anyMatch(level->level != null && levels.contains(level))) {
 					$("export class Sort",()->{
 						TreeSet<String> procesado = new TreeSet<>();
@@ -214,10 +216,8 @@ public class GeneradorEntidad extends AbsEntityGenerator<WebClientTypescript>{
 				if(entidad.key != null && !entidad.key.isSimple())
 					KeyGenerator.generate(this, entidad);
 			});
-			$imports();
-			$("import {JSONUtils} from \"../JSONUtils\";");
-			$("import {Injectable} from \"@angular/core\";");
-			client.requiredClasses.addAll(imports);
+			if(!imports.isEmpty())
+				throw new NullPointerException("Can't add imports at js file end");
 			client.exportFile(this, client.paqueteEntidades.replace(".", File.separator) + File.separator + entidad.clase.getSimpleName() + ".ts");
 		}};
 	}

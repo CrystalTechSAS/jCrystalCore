@@ -15,6 +15,8 @@ import jcrystal.main.data.ClientContext;
 import jcrystal.manager.utils.FileWrapperResponse;
 import jcrystal.reflection.annotations.CrystalDate;
 import jcrystal.reflection.annotations.com.jSerializable;
+import jcrystal.server.FileDownloadDescriptor;
+import jcrystal.server.FileUploadDescriptor;
 import jcrystal.reflection.annotations.Post;
 import jcrystal.reflection.annotations.jEntity;
 import jcrystal.types.IJType;
@@ -77,7 +79,11 @@ public class TypeScriptTypeConverter implements ITypeConverter, IImportConverter
 	}
 	@Override
 	public String $toString(IJType type, AbsICodeBlock parent) {
-		if(type.is(CreationTimestamp.class, ModificationTimestamp.class))
+		if(type.is(FileUploadDescriptor.class))
+			return "File";
+		else if(type.is(FileDownloadDescriptor.class))
+			return "Blob";
+		else if(type.is(CreationTimestamp.class, ModificationTimestamp.class))
 			return "CrystalDateMilis";
 		else if(type.isJAnnotationPresent(InternalEntityKey.class))
 			return type.getJAnnotation(InternalEntityKey.class).simpleKeyName();

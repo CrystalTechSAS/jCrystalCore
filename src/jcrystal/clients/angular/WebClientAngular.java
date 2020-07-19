@@ -281,13 +281,13 @@ public class WebClientAngular extends WebClientTypescript{
 						$("/**");
 						$("* " + endPoint.getPath(descriptor));
 						$("**/");
+						final Tupla2<List<JVariable>, Map<HttpType, List<JVariable>>> clientParams = getParamsWebService(endPoint);
 						if(endPoint.isMultipart()) {
 							$("static "+endPoint.name()+" = new class {");
 							incLevel();
 							$("fd = new FormData();");
 							for(JCrystalWebService service : ((JCrystalMultipartWebService)endPoint).getServices()) {
 								final TypescriptCode interno = new TypescriptCode();
-								final Tupla2<List<JVariable>, Map<HttpType, List<JVariable>>> clientParams = getParamsWebService(endPoint);
 								final List<JVariable> parametros = clientParams.v0;
 								IJType successType = getReturnCallbackType(this, service);
 								parametros.add(new JVariable(successType, "onSuccess"));
@@ -300,7 +300,6 @@ public class WebClientAngular extends WebClientTypescript{
 							}
 						}
 						
-						final Tupla2<List<JVariable>, Map<HttpType, List<JVariable>>> clientParams = getParamsWebService(endPoint);
 						final List<JVariable> parametros = clientParams.v0;
 						parametros.add(0, new JVariable(BaseNetwork, "base"));
 						

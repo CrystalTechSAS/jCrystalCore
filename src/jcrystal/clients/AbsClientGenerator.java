@@ -92,7 +92,7 @@ public abstract class AbsClientGenerator<T extends Client> {
 			if(level!=null) {
 				if(entidad.getUsedLevels().contains(level)) {
 					ret.complete.get(context.data.entidades.targetEntity(entity)).add(level);
-					entidad.fields.stream().filter(f->f.getTargetEntity() != null && f.level.level <= level.level).forEach(f->{
+					entidad.fields.stream().filter(f->f.getTargetEntity() != null && ( f.level == null || f.level.level <= level.level )).forEach(f->{
 						if(f.getTargetEntity().key == null)
 							ret.complete.get(f.getTargetEntity().clase).add(level);
 						else

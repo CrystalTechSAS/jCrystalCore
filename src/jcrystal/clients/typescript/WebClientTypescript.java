@@ -65,6 +65,7 @@ import jcrystal.utils.context.CodeGeneratorContext;
 import jcrystal.utils.context.CodeGeneratorContext.ContextType;
 import jcrystal.utils.langAndPlats.AbsCodeBlock;
 import jcrystal.utils.langAndPlats.TypescriptCode;
+import jcrystal.utils.langAndPlats.AbsCodeBlock.B;
 import jcrystal.utils.langAndPlats.delegates.TypescriptCodeDelegator;
 
 /**
@@ -122,7 +123,7 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 
 			$("export class AbsBaseNetwork",()->{
 				descriptor.configs.values().forEach(internalConfig -> {
-					String ruta = "\"" + internalConfig.BASE_URL(null) + "\"";
+					String ruta = internalConfig.BASE_URL(null);
 					ruta = ruta.replace("\"\"", "");
 					while(ruta.trim().startsWith("+"))
 						ruta = ruta.substring(1);
@@ -197,7 +198,7 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 			name = name == null ? h.substring(0,1).toUpperCase() + h.substring(1) : (name + h.substring(0,1).toUpperCase() + h.substring(1));
 			StringWriter sw = new StringWriter();
 			try (PrintWriter pw = new PrintWriter(sw)) {
-				pw.println("import * as moment from 'moment';");
+				pw.println("import moment from 'moment';");
 				pw.println("export class Crystal" + name + "{");
 				pw.println("    date: Date;");
 				pw.println("    constructor(d: Date | string){");
@@ -288,24 +289,26 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 				String path = String.join("", Collections.nCopies(numSlash+1, "../"));
 				
 				$("import 'rxjs';");
-				$("import {AppConfiguration} from \""+path+"../utils/app-configuration\";"); //TODO
-				$("import { environment } from 'src/environments/environment';");
+				$("import {AppConfiguration} from \""+path+"../utils/app-configuration\";");
+				$("import {AbsBaseNetwork, RequestError, defaultOnError, TipoError} from \""+path+"../"+paqueteServicios+"/BaseNetwork\";");
+				for(final IWServiceEndpoint endPoint : entry.getValue())
+					endPoint.gatherRequiredTypes(imports);
+				$imports(numSlash + 1);
 				$("export class " + name, ()->{
 					for(final IWServiceEndpoint endPoint : entry.getValue()) {
 						JCrystalWebService m = (JCrystalWebService)endPoint;
 						IInternalConfig internalConfig = m.exportClientConfig(descriptor);
-						endPoint.gatherRequiredTypes(imports);
 						final boolean nativeEmbeddedResponse = internalConfig.embeddedResponse() && SUPPORTED_NATIVE_TYPES.contains(m.getReturnType());
+						final Tupla2<List<JVariable>, Map<HttpType, List<JVariable>>> clientParams = getParamsWebService(endPoint);
 						$("/**");
 						$("* " + endPoint.getPath(descriptor));
 						$("**/");
-						if(endPoint.isMultipart()) {
+						if(endPoint instanceof JCrystalMultipartWebService) {
 							$("static "+endPoint.name()+" = new class {");
 							incLevel();
 							$("fd = new FormData();");
 							for(JCrystalWebService service : ((JCrystalMultipartWebService)endPoint).getServices()) {
 								final TypescriptCode interno = new TypescriptCode();
-								final Tupla2<List<JVariable>, Map<HttpType, List<JVariable>>> clientParams = getParamsWebService(endPoint);
 								final List<JVariable> parametros = clientParams.v0;
 								IJType successType = getReturnCallbackType(this, service);
 								parametros.add(new JVariable(successType, "onSuccess"));
@@ -318,22 +321,21 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 							}
 						}
 						
-						final Tupla2<List<JVariable>, Map<HttpType, List<JVariable>>> clientParams = getParamsWebService(endPoint);
 						final List<JVariable> parametros = clientParams.v0;
 						
 						IJType successType = getReturnCallbackType(this, endPoint);
 						if(successType!=null)
 							parametros.add(new JVariable(successType, "onSuccess"));
 						
-						String methodName = endPoint.isMultipart() ? "doRequest" : endPoint.name();
+						String methodName = endPoint instanceof JCrystalMultipartWebService ? "doRequest" : endPoint.name();
 						parametros.add(new JVariable(GlobalTypes.jCrystal.ErrorListener, "onError", "defaultOnError"));
 						$((endPoint.isMultipart()?"":"static ") + methodName + "(" + parametros.stream().map(this::$V).collect(Collectors.joining(", ")) + ")", ()->{
-							String ruta = m.getPath(descriptor);
-							for (final JCrystalWebServiceParam param : m.parametros)
-								if (param.tipoRuta == HttpType.PATH)
-									ruta = ruta.replace("$" + param.nombre, "\"+" + param.nombre + "+\"");
-							String url = internalConfig.BASE_URL("web");
-							$("var _ruta = \"" + url + ruta + "\";");
+							$("let params:string = null;");
+							if(endPoint.isMultipart())
+								$("var fd = new FormData();");
+							
+							$("var ruta : string = AbsBaseNetwork.BASE_SERVER_URL + \""+ endPoint.getPath(descriptor) + "\";");
+							$("if(AppConfiguration.DEBUG)console.log(\"" + endPoint.getPathType().name() + " \"+ruta);");
 							processGetParams(this, clientParams.v1.get(HttpType.GET));
 							if(m.isMultipart())
 								$("var fd = new FormData();");
@@ -354,9 +356,8 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 								});
 							}
 							$ifNotNull("onSuccess",()->{
-								$("$('[data-" + name + "-" + methodName + "]').addClass('loading');");
 								$("let $xhr = new XMLHttpRequest();");
-								$("$xhr.open('" + m.tipoRuta.name() + "', _ruta);");
+								$("$xhr.open('" + m.tipoRuta.name() + "', ruta);");
 								processHeaderParams(this, clientParams.v1.get(HttpType.HEADER), m.tokenParam);
 								if(m.getReturnType().is(FileDownloadDescriptor.class))
 									$("$xhr.responseType= 'blob';");
@@ -373,15 +374,15 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 									$("$xhr.send();");
 								}
 								$("$xhr.onerror = function()",()->{
-									$("$('[data-" + name + "-" + methodName + "]').removeClass('loading');");
-									$("onError({type: \"SERVER_ERROR\", code: $xhr.status, msg: $xhr.response});");
+									$("onError(new RequestError($xhr.status, $xhr.response, TipoError.SERVER_ERROR));");
 								},";");
 								$("$xhr.onload = function()",()->{
 									$if("$xhr.status >= 200 && $xhr.status < 300",()->{
 										$("var response = $xhr.response;");
-										$("$('[data-" + name + "-" + methodName + "]').removeClass('loading');");
-										if(m.tipoRuta.isPostLike() && m.getReturnType().is(FileDownloadDescriptor.class)) {
-											$("onSuccess(response, $xhr.getResponseHeader('Content-Disposition').match(/filename[^;=\\n]*=((['\"]).*?\\2|[^;\\n]*)/)[1]);");
+										if(m.getReturnType().is(FileDownloadDescriptor.class)) {
+											//TODO: Agregar el nombre de archivo al callback
+											//$("onSuccess(response, $xhr.getResponseHeader('Content-Disposition').match(/filename[^;=\\n]*=((['\"]).*?\\2|[^;\\n]*)/)[1]);");
+											$("onSuccess(response);");
 										}else {
 											if (internalConfig.SUCCESS_TYPE() != null)
 												$("var success = response.success || " + internalConfig.SUCCESS_DAFAULT_VALUE() + ";");
@@ -394,111 +395,40 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 													$("onSuccess();");
 													$("return;");
 												}else {
-													if (SUPPORTED_NATIVE_TYPES.contains(m.getReturnType()) || m.getReturnType().is(String.class)) {
-														if(nativeEmbeddedResponse)
-															$("onSuccess(response);");
-														else
-															$("onSuccess(response.r);");
-													} else if (m.getReturnType().isSubclassOf(Map.class)) {
-														if(nativeEmbeddedResponse)
-															$("onSuccess(response);");
-														else
-															$("onSuccess(response.r);");
-													}else if (m.getReturnType().is(Page.class)) {
-														IJType inner = m.getReturnType().getInnerTypes().get(0); 
-														String response = "response.r.list";
-														if(nativeEmbeddedResponse)
-															throw new NullPointerException("Unsupported");
-														if (inner.isAnnotationPresent(jEntity.class))
-															response = "Entity."+inner.resolve().getSimpleName() + ".prototype.$convertArray(" + response + ")";
-														$("onSuccess({'list':" + response + ", 'next': response.r.nextToken ? function()",()->{
-															$(name+"."+methodName+"(" + parametros.stream().limit(parametros.size() - 1).map(f -> f.name()).collect(Collectors.joining(", ")) + ", response.r.nextToken);");
-														}," : null});");
-													}else if (m.getReturnType().isIterable()) {
-														IJType inner = m.getReturnType().getInnerTypes().get(0); 
-														String response = "response.r";
-														if(nativeEmbeddedResponse)
-															response = "response";
-														if (inner.isAnnotationPresent(jEntity.class))
-															response = "Entity."+context.data.entidades.targetEntity(inner).getSimpleName() + ".prototype.$convertArray(" + response + ")";
-														$("onSuccess(" + response + ");");
-													}else if (m.getReturnType().isAnnotationPresent(jEntity.class)) {
-														if(context.input.SERVER.DEBUG.CORS && m.getReturnType().isAnnotationPresent(LoginResultClass.class))
-															$("onSuccess(response.r ? new Entity."+context.data.entidades.targetEntity(m.getReturnType()).getSimpleName() + "(response.r).storeToken() : null);");
-														else
-															$("onSuccess(response.r ? new Entity."+context.data.entidades.targetEntity(m.getReturnType()).getSimpleName() + "(response.r) : null);");
-													} else if (m.getReturnType().isAnnotationPresent(jSerializable.class)) {
-														if(nativeEmbeddedResponse)
-															$("onSuccess(response);");
-														else
-															$("onSuccess(response.r);");
-													} else if (m.getReturnType().getSimpleName().startsWith("Tupla")) {
-														final List<IJType> tipos =m.getReturnType().getInnerTypes();
-														StringSeparator sp = new StringSeparator(", ");
-														int e = 0;
-														for (IJType p : tipos) {
-															if (p.isAnnotationPresent(jEntity.class))
-																sp.add("response.r[" + e + "] ? new Entity." + context.data.entidades.targetEntity(p).getSimpleName() + "(response.r[" + e + "]) : null");
-															else if(p.isIterable() && p.getInnerTypes().get(0).isAnnotationPresent(jEntity.class))
-																sp.add("Entity." + context.data.entidades.targetEntity(p.getInnerTypes().get(0)).getSimpleName() + ".prototype.$convertArray(response.r[" + e + "])");
-															else
-																sp.add("response.r[" + e + "]");
-															e++;
-														}
-														$("onSuccess(" + sp + ");");
-													} else
-														$("onSuccess(result);");
-													$("return;");
+													putResponseProcessing(this, m);
 												}
 											});
 											if (internalConfig.ERROR_CONDITION() != null)
 												$if(internalConfig.ERROR_CONDITION(), () -> {
-												$("onError({type: \"ERROR\", code: response.code, msg: response."+internalConfig.ERROR_MESSAGE_NAME() + "});");
-												$("return;");
-											});
+													$("onError(new RequestError(response.code, response."+internalConfig.ERROR_MESSAGE_NAME() + ", TipoError.ERROR));");
+													$("return;");
+												});
 											if (internalConfig.UNATHORIZED_CONDITION() != null)
 												$if(internalConfig.UNATHORIZED_CONDITION(), () -> {
-												$("onError({type: \"UNAUTHORIZED\", code: response.code, msg: response."+internalConfig.ERROR_MESSAGE_NAME() + "});");
-												$("return;");
-											});
+													$("onError(new RequestError(response.code, response."+internalConfig.ERROR_MESSAGE_NAME() + ", TipoError.UNAUTHORIZED));");
+													$("return;");
+												});
 											if (internalConfig.SUCCESS_TYPE() != null) {
-												$("onError({type: \"SERVER_ERROR\", code: response.code, msg: response."+internalConfig.ERROR_MESSAGE_NAME() + "});");
+												$("onError(new RequestError(response.code, response."+internalConfig.ERROR_MESSAGE_NAME() + ", TipoError.SERVER_ERROR));");
 											}
 										}
 									});
 									$else(()->{
-										$("onError({type: \"ERROR\", code: $xhr.status, msg: \"Server error : \" + $xhr.status});");
+										$("onError(new RequestError($xhr.status, \"Server error : \" + $xhr.status, TipoError.ERROR));");
 									});
 								},";");
 								
 							});
-							if(m.tipoRuta.isGetLike())
-								$else(()->{
-									$("return ",()->{
-										$("OPEN : function()",()->{
-											$("var win = window.open(_ruta, '_blank');");
-											$if("win",()->{
-												$("win.focus();");
-											});
-											$else(()->{
-												$("alert('Please allow popups for this website');");
-											});
-										},",");
-										$("URL : function()",()->{
-											$("return _ruta;");
-										});
-									},";");
-								});
-						},",");
+						});
 						
-						if(endPoint.isMultipart()) {
+						if(endPoint instanceof JCrystalMultipartWebService) {
 							$("}");
 							decLevel();
 						}
 					}
 				});
-				
-				$imports(numSlash + 1);
+				if(!imports.isEmpty())
+					throw new NullPointerException("Hay un import que no se puso en el header");
 			}};
 			
 			String paquete = paqueteServicios;
@@ -507,12 +437,24 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 			exportFile(cliente, paquete.replace(".", File.separator) + File.separator + name + ".ts");
 		}
 	}
+	//TODO: Es una copia del de jquery!!! abstraer
 	protected <X extends AbsCodeBlock> void processHeaderParams(X METODO, List<JVariable> params, JCrystalWebServiceParam token) {
-		METODO.new B() {{
-			if(token != null)
-				$if(token.type().getSimpleName()+".getTokenId() != null",()->{
-					$("headers = headers.append('Authorization', "+token.type().getSimpleName()+".getTokenId());");							
+		StringSeparator headerParams = new StringSeparator(", ");
+		for(JVariable param : params) {
+			if(param.type().is(String.class)) {
+				METODO.$ifNotNull(param.value, ()->{
+					METODO.$("$xhr.setRequestHeader(\"" + param.name() + "\", " + param.value + ");");
 				});
+			}
+		}
+		if(token != null)
+			METODO.$if(token.type().getSimpleName()+".getTokenId() != null",()->{
+				METODO.$("$xhr.setRequestHeader(\"Authorization\", "+token.type().getSimpleName()+".getTokenId());");							
+			});
+		if(!headerParams.isEmpty())
+			METODO.$("headers: {"+headerParams+"},");
+		METODO.new B() {{
+			
 		}};
 	}
 	private void putResponseProcessing(AbsCodeBlock code, IWServiceEndpoint m) {
@@ -520,10 +462,10 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 			if(m.getReturnType().is(Void.TYPE))
 				$("onSuccess();");
 			else if(m.getReturnType().is(String.class))
-				$("onSuccess(js.r as string)");
+				$("onSuccess(response.r as string)");
 			else if (m.getReturnType().isIterable()) { 
 				final IJType tipoParametro = m.getReturnType().getInnerTypes().get(0);
-				$("let _array : any[] = js.r;");
+				$("let _array : any[] = response.r;");
 				if(tipoParametro.isAnnotationPresent(jEntity.class)){
 					$("var _lista : "+$($convert(tipoParametro))+"[]=[];");
 					$("for( let e of _array)", ()->{
@@ -546,15 +488,15 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 				$("onSuccess(_lista)");
 			}else if (m.getReturnType().isAnnotationPresent(jEntity.class)) {
 				if (m.getReturnType().isAnnotationPresent(LoginResultClass.class))
-					$("onSuccess("+ context.data.entidades.targetEntity(m.getReturnType()).getSimpleName()+".setSession("+ m.getReturnType().getSimpleName()+".fromJson"+ m.getJsonLevel(m.getReturnType()).baseName() +"(js.r as any)));");
+					$("onSuccess("+ context.data.entidades.targetEntity(m.getReturnType()).getSimpleName()+".setSession("+ context.data.entidades.targetEntity(m.getReturnType()).getSimpleName()+".fromJson"+ m.getJsonLevel(m.getReturnType()).baseName() +"(response.r as any)));");
 				else
-					$("onSuccess("+ context.data.entidades.targetEntity(m.getReturnType()).getSimpleName()+".fromJson"+ m.getJsonLevel(m.getReturnType()).baseName() +"(js.r as any));");
+					$("onSuccess("+ context.data.entidades.targetEntity(m.getReturnType()).getSimpleName()+".fromJson"+ m.getJsonLevel(m.getReturnType()).baseName() +"(response.r as any));");
 			} else if (m.getReturnType().isAnnotationPresent(jSerializable.class)) {
 				requiredClasses.add(m.getReturnType());
 				if (m.getReturnType().isAnnotationPresent(LoginResultClass.class))
-					$("onSuccess("+ m.getReturnType().getSimpleName()+".setSession("+m.getReturnType().getSimpleName()+".fromJson(js.r as any)));");
+					$("onSuccess("+ m.getReturnType().getSimpleName()+".setSession("+m.getReturnType().getSimpleName()+".fromJson(response.r as any)));");
 				else
-					$("onSuccess("+ m.getReturnType().getSimpleName() + ".fromJson(js.r as any));");
+					$("onSuccess("+ m.getReturnType().getSimpleName() + ".fromJson(response.r as any));");
 			} else if (m.getReturnType().getSimpleName().startsWith("Tupla")) {
 				final List<IJType> tipos = m.getReturnType().getInnerTypes();
 				StringSeparator sp = new StringSeparator(',');
@@ -563,19 +505,19 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 					if (p.getInnerTypes().isEmpty()) {
 						if (p.isAnnotationPresent(jEntity.class)) {
 							if (p.isAnnotationPresent(LoginResultClass.class))
-								sp.add(context.data.entidades.targetEntity(p).getSimpleName()+".setSession("+ context.data.entidades.targetEntity(p).getSimpleName() + ".fromJson" + m.getJsonLevel(p).baseName() + "(js.r[" + e + "] as any))");
+								sp.add(context.data.entidades.targetEntity(p).getSimpleName()+".setSession("+ context.data.entidades.targetEntity(p).getSimpleName() + ".fromJson" + m.getJsonLevel(p).baseName() + "(response.r[" + e + "] as any))");
 							else
-								sp.add(context.data.entidades.targetEntity(p).getSimpleName() + ".fromJson" + m.getJsonLevel(p).baseName() + "(js.r[" + e + "] as any)");
+								sp.add(context.data.entidades.targetEntity(p).getSimpleName() + ".fromJson" + m.getJsonLevel(p).baseName() + "(response.r[" + e + "] as any)");
 						} else if (p.isAnnotationPresent(jSerializable.class)) {
 							requiredClasses.add(p);
 							if (p.isAnnotationPresent(LoginResultClass.class))
-								sp.add(p.getSimpleName()+".setSession("+ $($convert(p))+".fromJson(js.r[" + e + "] as any))");
+								sp.add(p.getSimpleName()+".setSession("+ $($convert(p))+".fromJson(response.r[" + e + "] as any))");
 							else
-								sp.add($($convert(p))+".fromJson(js.r[" + e + "] as any)");
+								sp.add($($convert(p))+".fromJson(response.r[" + e + "] as any)");
 						} else if(p.isPrimitiveObjectType() || p.is(String.class))
-							sp.add("js.r[" + e + "] as "+$($convert(p)));
+							sp.add("response.r[" + e + "] as "+$($convert(p)));
 						else if(p.is(GeoPt.class))
-							sp.add("[js.r[" + e + "][0] as number, js.r[" + e + "][1] as number]");
+							sp.add("[response.r[" + e + "][0] as number, response.r[" + e + "][1] as number]");
 						else throw new NullPointerException("Unssuported type " + p);
 					} else{
 						if(p.isSubclassOf(FileWrapperResponse.class))
@@ -583,10 +525,10 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 						if (p.isSubclassOf(List.class)) {
 							IJType pClass = p.getInnerTypes().get(0);
 							if (pClass.isAnnotationPresent(jEntity.class)) {
-								sp.add(context.data.entidades.targetEntity(pClass).getSimpleName()+".listFromJson"+ m.getJsonLevel(pClass).baseName()+"(js.r[" + e + "] as any[])");
+								sp.add(context.data.entidades.targetEntity(pClass).getSimpleName()+".listFromJson"+ m.getJsonLevel(pClass).baseName()+"(response.r[" + e + "] as any[])");
 							} else if (pClass.isAnnotationPresent(jSerializable.class)) {
 								requiredClasses.add(pClass);
-								sp.add($($convert(pClass)) + ".listFromJson(js.r[" + e + "] as any[])");
+								sp.add($($convert(pClass)) + ".listFromJson(response.r[" + e + "] as any[])");
 							} else throw new NullPointerException("Unssuported type " + p);
 						} else
 							throw new NullPointerException("Error, tipos incompatibles. No se puede tener un metodo con retorno " + p);
@@ -595,9 +537,9 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 				}
 				$("onSuccess(" + sp + ");");
 			}else if(m.getReturnType().isPrimitive())
-				$("onSuccess(js.r as "+$($convert(m.getReturnType()))+")");
+				$("onSuccess(response.r as "+$($convert(m.getReturnType()))+")");
 			else
-				$("onSuccess(js.r);");
+				$("onSuccess(response.r);");
 		}};
 	}
 	
