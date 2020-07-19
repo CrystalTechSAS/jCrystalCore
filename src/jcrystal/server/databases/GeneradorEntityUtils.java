@@ -71,31 +71,34 @@ public class GeneradorEntityUtils {
 				context.data.databases.forEach((name, db)->{
 					$("public interface " + db.getDBName(),()->{
 						switch (db.type) {
-						case GOOGLE_DATASTORE:
-							$("public com.google.appengine.api.datastore.Entity getRawEntity();");
-							delete:{
-								$("default void deleteTxn()", ()->{
-									$("jcrystal.context.CrystalContext $ctx = jcrystal.context.CrystalContext.get();");
-									$("$ctx."+db.getDBName()+"().service.delete($ctx."+db.getDBName()+"().getTxn(), getRawEntity().getKey());");
+							case GOOGLE_REALTIMEDB:
+								$("public java.util.Map<String, Object> getRawEntity();");
+								break;
+							case GOOGLE_DATASTORE:
+									$("public com.google.appengine.api.datastore.Entity getRawEntity();");
+								delete:{
+									$("default void deleteTxn()", ()->{
+										$("jcrystal.context.CrystalContext $ctx = jcrystal.context.CrystalContext.get();");
+										$("$ctx."+db.getDBName()+"().service.delete($ctx."+db.getDBName()+"().getTxn(), getRawEntity().getKey());");
+									});
+									$("default void delete()", ()->{
+										$("jcrystal.context.CrystalContext.get()."+db.getDBName()+"().service.delete((com.google.appengine.api.datastore.Transaction)null, getRawEntity().getKey());");
+									});
+								}
+								$("default com.google.appengine.api.datastore.Key getKey()",()->{
+									$("return getRawEntity().getKey();");
 								});
+								break;
+							case GOOGLE_FIRESTORE:
+								$("public java.util.Map<String, Object> getRawEntity();");
+								$("public String[] getRawKey();");
+								$("public String getRawKeyPath();");
 								$("default void delete()", ()->{
-									$("jcrystal.context.CrystalContext.get()."+db.getDBName()+"().service.delete((com.google.appengine.api.datastore.Transaction)null, getRawEntity().getKey());");
+									$("jcrystal.context.CrystalContext.get().DefaultDB().delete(jcrystal.context.CrystalContext.get().DefaultDB().service.document(getRawKeyPath()));");
 								});
-							}
-							$("default com.google.appengine.api.datastore.Key getKey()",()->{
-								$("return getRawEntity().getKey();");
-							});
-							break;
-						case GOOGLE_FIRESTORE:
-							$("public java.util.Map<String, Object> getRawEntity();");
-							$("public String[] getRawKey();");
-							$("public String getRawKeyPath();");
-							$("default void delete()", ()->{
-								$("jcrystal.context.CrystalContext.get().DefaultDB().delete(jcrystal.context.CrystalContext.get().DefaultDB().service.document(getRawKeyPath()));");
-							});
-							break;
-						default:
-							break;
+								break;
+							default:
+								break;
 						}
 						if(context.input.SERVER.DEBUG.ENTITY_CHECKS) {
 							$("//DEBUG");

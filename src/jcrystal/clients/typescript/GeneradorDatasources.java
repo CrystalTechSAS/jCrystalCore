@@ -1,4 +1,4 @@
-package jcrystal.clients.angular;
+package jcrystal.clients.typescript;
 
 import java.io.File;
 import java.util.Set;
@@ -16,8 +16,8 @@ import jcrystal.utils.langAndPlats.AbsCodeBlock.PL;
 import jcrystal.utils.langAndPlats.TypescriptCode;
 
 public class GeneradorDatasources {
-	WebClientAngular parent;
-	public GeneradorDatasources(WebClientAngular parent) {
+	WebClientTypescript parent;
+	public GeneradorDatasources(WebClientTypescript parent) {
 		this.parent = parent;
 	}
 	private void generarUtils(String name, IWServiceEndpoint ws, PL params, IJType type, TypescriptCode code) {
@@ -165,7 +165,7 @@ public class GeneradorDatasources {
 			int numSlash =  name.length() - name.replace("/", "").length();
 			$imports(numSlash + 1);
 			
-			String paquete = WebClientAngular.paqueteServicios;
+			String paquete = WebClientTypescript.paqueteServicios;
 			if(name.contains("/"))
 				paquete+= "."+name.substring(0, name.lastIndexOf('/')).replace("/", ".");
 			parent.exportFile(this, paquete.replace(".", File.separator) + File.separator + prefixName + "Service.ts");

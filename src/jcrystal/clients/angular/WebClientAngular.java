@@ -20,6 +20,8 @@ import jcrystal.annotations.internal.model.db.InternalEntityKey;
 import jcrystal.clients.AbsClientGenerator;
 import jcrystal.clients.ClientGeneratorDescriptor;
 import jcrystal.clients.ClientId;
+import jcrystal.clients.typescript.GeneradorDatasources;
+import jcrystal.clients.typescript.WebClientTypescript;
 import jcrystal.configs.clients.Client;
 import jcrystal.configs.clients.IInternalConfig;
 import jcrystal.datetime.DateType;
@@ -68,47 +70,21 @@ import jcrystal.utils.langAndPlats.delegates.TypescriptCodeDelegator;
 /**
 * Created by AndreaC on 13/12/2016.
 */
-public class WebClientTypescript extends AbsClientGenerator<Client>{
-	
+public class WebClientAngular extends WebClientTypescript{
 	
 	private static final IJType BaseNetwork = new JType(null, "BaseNetwork");
 	
+	protected GeneradorDatasources generadorDatasources;
 	
-	static final String paquetePadre = "jcrystal";
-	static final String paqueteServicios = "jcrystal/services";
-	static final String paqueteEntidades = "jcrystal/entities";
-	static final String paqueteDates = "jcrystal/dates";
-	static final String paqueteEnums = "jcrystal/enums";
-	static final String paqueteResultados = "jcrystal/results";
-	
-	private GeneradorDatasources generadorDatasources;
-	
-	List<JClass> securityTokens = new ArrayList<>();
-	
-	public WebClientTypescript(ClientGeneratorDescriptor<Client> descriptor){
+	public WebClientAngular(ClientGeneratorDescriptor<Client> descriptor){
 		super(descriptor);
-		entityGenerator = new GeneradorEntidad(this);
-		
 	}
 	@Override
 	protected void setupEnviroment() throws Exception {
+		super.setupEnviroment();
 		generadorDatasources = new GeneradorDatasources(this);
-		TypeScriptTypeConverter converter = new TypeScriptTypeConverter(context);
-		ContextType.WEB.init();
-		CodeGeneratorContext.set(Language.TYPESCRIPT, converter, converter);
 	}
 	
-	@Override public void generarCliente() throws Exception{
-		generarCodigo();
-		generarEntidades();
-		generarResultados();
-		generarEnums();
-		generarDateTypes();
-		generarNetworkUtils();
-		
-		addResource(WebClientTypescript.class.getResourceAsStream("JSONUtils.ts"), paquetePadre.replace(".", File.separator) + File.separator + "JSONUtils.ts");
-		addResource(WebClientTypescript.class.getResourceAsStream("error.services.ts"), paqueteServicios.replace(".", File.separator) + File.separator + "error.services.ts");
-	}
 	private void generarNetworkUtils() {
 		final String paquete = paqueteServicios;
 		final TypescriptCode $ = new TypescriptCode(){{
@@ -700,162 +676,6 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 					throw new NullPointerException("Unssuported post type " + param.type().name());
 			}
 		}};
-	}
-	
-	private void exportFile(List<String> codigo, String out){
-		addResource(codigo, out);
-	}
-	
-	public final ResultGenerator ResultGenerator = new ResultGenerator(); 
-	class ResultGenerator implements TypescriptCodeDelegator{
-		TypescriptCode code;
-		@Override
-		public TypescriptCode getDelegator() {
-			return code;
-		}
-		void generate(final JClass clase) {
-			new TypescriptCode(){{
-				ResultGenerator.this.code = this;
-				//CREAR LA CLASE
-				$("export class " + clase.getSimpleName(), ()->{
-					for(final JVariable f : clase.attributes){
-						$(f.name()+":"+$($convert(f.type()))+";");
-						if(f.type().isEnum() || f.type().isAnnotationPresent(jSerializable.class))
-							$import(f.type());	
-					}
-					
-					$("constructor()", ()->{});
-					
-					generateFromJson(clase, null, clase.attributes.stream().map(f->f.accessor()).collect(Collectors.toList()), false);
-					
-					if (clase.isAnnotationPresent(LoginResultClass.class)) {
-						crearcodigoTokenSeguridad(this, clase, clase.attributes);
-					}
-					$("store(key : string)",()-> {
-						$("localStorage.setItem( key, JSON.stringify(this));");
-					});
-					$("public static retrieve(key : string)",()-> {
-						$("var ret = localStorage.getItem(key);");
-						$if("ret != null",()->{
-							$("return this.fromJson(JSON.parse(ret));");//TODO @acbuitrago: Se cambió fromJsonLocal por fromJson, un Result puede tener campos específicos del lado del cliente? 
-						});
-						$("return null;");
-					});
-				});
-				$imports();
-				requiredClasses.addAll(imports);
-				exportFile(this, paqueteResultados.replace(".", File.separator) + File.separator + clase.getSimpleName() + ".ts");
-			}};
-		}
-		void generateFromJson(final JClass clase, final JsonLevel level, final List<IAccessor> campos, boolean isLocal){
-			$M(PUBLIC | STATIC, clase.getSimpleName(), "fromJson" + (level == null ? "" : level.baseName()) + (isLocal ? "Local" : "" ), $(P(GlobalTypes.Object, "json")), ()->{
-				$if("!json", "return null;");
-				$("let ret = new "+clase.getSimpleName()+"();");
-				for(final IAccessor f : campos)
-					procesarCampo(f);
-				$("return ret;");
-			});
-			
-			$M(PUBLIC | STATIC, clase.getSimpleName()+(level==null?"":level.baseName())+"[]", "listFromJson"+(level==null?"":level.baseName()) + (isLocal ? "Local" : "" ), $(P(GlobalTypes.ARRAY.Object, "json")), ()->{
-				$("return json.map(this.fromJson"+(level==null?"":level.baseName()) + (isLocal ? "Local" : "" )+");");
-			});
-		}
-		void procesarCampo(final IAccessor f){
-			if(f.type().name().equals("com.google.appengine.api.datastore.GeoPt")) {
-				$ifNotNull("json." + f.name(), ()->{
-					$("ret." + f.name() + " = [json." + f.name() + "[0] as number, json."+ f.name() +"[1] as number]");
-				});
-			}else if(f.type().isEnum()) {
-				$("ret." + f.name() +" = json."+ f.name()+" as "+$($convert(f.type()))+";");
-			}else if(f.type().is(Date.class)) {
-				$("let fecha =json."+ f.name()+" as string");
-				$("ret." + f.name() +"= moment.utc(fecha,SDF_"+ f.name()+");");
-			}else if(f.type().isJAnnotationPresent(CrystalDate.class)) {
-				$("ret." + f.name() +"= new " + $(f.type()) + "(json."+f.name()+" as string);");
-			}else if(f.type().is(int.class, Integer.class, long.class, Long.class, double.class, float.class))
-				$("ret." + f.name() + " = (json." + f.name() + " as number);");
-			else if(f.type().is(boolean.class))
-				$("ret." + f.name() + " = json." + f.name() + " as boolean; ");
-			else if(f.type().is(String.class, com.google.appengine.api.datastore.Text.class)) {
-				$("ret." + f.name() + " = json." + f.name() + " as string;");
-			}else if(f.type().isArray()){
-				final IJType arrayType = f.type().getInnerTypes().get(0);
-				if(arrayType.isSubclassOf(MaskedEnum.class)){
-					$("ret." + f.name() + " = " + arrayType.getSimpleName() + ".getFromMask(json." + f.name() + " as number);");
-				}else{
-					$("let $Array" + f.name() + " = json." + f.name() + " as any[];");
-					$if("$Array"+  f.name(),()->{
-						$( "ret." + f.name() +" = [];");
-						$("for(let i = 0; i < $Array" +  f.name() + ".length; i++)", ()->{
-							if(arrayType.is(int.class, long.class))
-								$("ret." + f.name() + "[i] = Number($Array" + f.name() + "[i]);");
-							else if(arrayType.isEnum()) {
-								$("ret." + f.name() + "[i] = Number($Array" + f.name() + "[i]);");
-								requiredClasses.add(arrayType);
-							}else
-								throw new NullPointerException(arrayType.name());
-						});
-					});
-				}
-			}else if(f.type().isAnnotationPresent(jSerializable.class)) {
-				$ifNotNull("json." + f.name(), ()->{
-					$("ret." + f.name() + " = "+f.type().getSimpleName()+".fromJson(json."+ f.name()+");");
-				});
-			}
-			else if(f.type().is(Map.class)) {
-				$("let $Array" + f.name() + " = json." + f.name() + " as any;");
-				$if("$Array"+  f.name(), ()->{
-					final IJType tipoParamero = f.type().getInnerTypes().get(0);
-					$("ret." + f.name() + " = $Array" + f.name()+");");
-				});
-			}
-			else if(f.type().isIterable()) {
-				$("let $Array" + f.name() + " = json." + f.name() + " as any[];");
-				$if("$Array"+  f.name(), ()->{
-					final IJType tipoParamero = f.type().getInnerTypes().get(0);
-					if(f.isJAnnotationPresent(descriptor.annotationClass.name()) && tipoParamero.name().equals("java.lang.Object")) {
-						$("ret." + f.name() + " = $Array" + f.name() + ";");
-					}else {
-						$("ret." + f.name() + " = [];");
-						$("for(let $temp of $Array" + f.name() + ")", ()->{
-							if(tipoParamero.is(Long.class)) {
-								$("ret." + f.name() + ".push($temp as number);");
-							}else if (tipoParamero.name().equals("com.google.appengine.api.datastore.GeoPt")) {
-								$("ret." + f.name() + ".push([$temp[0] as number, $temp[1] as number]);");
-							}else if (tipoParamero.isEnum()) {
-								IJType tipoId = ((JClass)tipoParamero).enumData.propiedades.get("id");
-								$("ret." + f.name() + ".push($temp as "+$(tipoId)+");");
-							}else if(tipoParamero.isAnnotationPresent(jEntity.class)) {
-								EntityClass entidad = context.data.entidades.get(tipoParamero);
-								$("ret." + f.name() + ".push($temp as " + entidad.name() + ");");
-							}else
-								throw new NullPointerException($(f.type()));
-						});
-					}
-				});
-			}else if(f.type().isJAnnotationPresent(InternalEntityKey.class)) {
-				$ifNotNull("json." + f.name(), ()->{
-					$("ret." + f.name() + " = "+f.type().getJAnnotation(InternalEntityKey.class).simpleKeyName()+".fromJson(json."+ f.name()+");");
-				});
-			}else if(f.isAnnotationPresent(RelMto1.class) || f.isAnnotationPresent(Rel1to1.class) || f.isAnnotationPresent(EntityKey.class)) {
-				EntityClass entidad = context.data.entidades.get(f.type());
-				if(entidad == null)
-					throw new NullPointerException("Referencia " + f.name()+" de tipo " + f.type().name()+" no existe la entidad target");
-				$("ret." + f.name() + " = (json." + f.name() + " as " + $($convert(entidad.key.getSingleKeyType())) +");");
-			}else if(f.isJAnnotationPresent(descriptor.annotationClass)) {
-				EntityClass entidad = context.data.entidades.get(f.type());
-				if(entidad == null) {
-					if(f.type().is(Object.class));
-					else
-						throw new NullPointerException("Referencia " + f.name()+" de tipo " + f.type().name()+" no existe la entidad target");
-				}
-				if(!f.type().is(Object.class))
-					$("ret." + f.name() + " = "+$($convert(f.type()))+".fromJsonLocal(json." + f.name() + ");");//TODO @acbuitrago: No entiendo como funciona esta linea
-			}else{
-				throw new NullPointerException("Error procesando " + $(f.type())+" : "+f.name());
-			}
-		}
-		
 	}
 }
 

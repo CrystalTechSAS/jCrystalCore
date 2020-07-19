@@ -61,7 +61,7 @@
 	<dependency>
 	    <groupId>com.github.CrystalTechSAS</groupId>
 	    <artifactId>jCrystalUtils</artifactId>
-	    <version>1.2.0-SNAPSHOT</version>
+	    <version>37d31f36c682dae80e56d5d06e02feced2ec8626</version>
 	</dependency>
 	<dependency>
 		<groupId>com.github.CrystalTechSAS</groupId>

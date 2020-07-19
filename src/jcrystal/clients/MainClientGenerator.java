@@ -1,13 +1,14 @@
 package jcrystal.clients;
 
 import jcrystal.clients.android.AndroidClient;
-import jcrystal.clients.angular.WebClientTypescript;
+import jcrystal.clients.angular.WebClientAngular;
 import jcrystal.clients.console.ConsoleClientGenerator;
 import jcrystal.clients.flutter.FlutterClient;
 import jcrystal.clients.generics.JavaSEClient;
 import jcrystal.clients.ios.SwiftClient;
 import jcrystal.clients.js.JQueryClient;
 import jcrystal.clients.jsweet.WebClientJSweet;
+import jcrystal.clients.typescript.WebClientTypescript;
 import jcrystal.clients.webadmin.WebAdminClient;
 import jcrystal.configs.clients.Client;
 import jcrystal.main.data.ClientContext;
@@ -51,6 +52,9 @@ public class MainClientGenerator {
 					break;
 				case IOS:
 					clientes.add(new SwiftClient(client));
+					break;
+				case ANGULAR:
+					clientes.add(new WebClientAngular(client));
 					break;
 				case TYPESCRIPT:
 					clientes.add(new WebClientTypescript(client));

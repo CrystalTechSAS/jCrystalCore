@@ -15,6 +15,7 @@ import jcrystal.server.databases.google.bigtable.GoogleBigtableGenerator;
 import jcrystal.server.databases.google.datastore.GoogleDatastoreGenerator;
 import jcrystal.server.databases.google.datastore.MainEntityGenerator;
 import jcrystal.server.databases.google.firebase.firestore.GoogleFirestoreGenerator;
+import jcrystal.server.databases.google.firebase.realtimedb.GoogleRealtimeDBGenerator;
 import jcrystal.utils.StringUtils;
 import jcrystal.utils.langAndPlats.JavaCode;
 
@@ -61,6 +62,9 @@ public class ModelGenerator {
 				case GOOGLE_BIG_QUERY:
 					new GoogleBigtableGenerator(back, context, entities).generate();
 					break;
+				case GOOGLE_REALTIMEDB:
+					new GoogleRealtimeDBGenerator(back, context, entities).generate();
+					break;
 				default:
 					throw new NullPointerException("Unsupported main DB type (" + entities.get(0).name() + "): " + dbType.name());
 			}
@@ -70,7 +74,29 @@ public class ModelGenerator {
 			new JavaCode(){{
 				$("package jcrystal.context;");
 				$("public class Utils" + StringUtils.capitalize(db.getDBName()), ()->{
-					if(db.type == DBType.GOOGLE_DATASTORE)
+					switch (db.type) {
+					case GOOGLE_REALTIMEDB:
+						$("public static class SingleValueEventListener implements com.google.firebase.database.ValueEventListener",()->{
+							$("public com.google.firebase.database.DataSnapshot snapshot;");
+							$("public com.google.firebase.database.DatabaseError error;");
+							$("public boolean complete = false;");
+							$("@Override public final void onDataChange(com.google.firebase.database.DataSnapshot snapshot)",()->{
+								$("this.snapshot = snapshot;");
+								$("complete = true;");
+								$("synchronized (this)",()->{
+									$("notify();");
+								});
+							});
+							$("@Override public final void onCancelled(com.google.firebase.database.DatabaseError error)",()->{
+								$("this.error = error;");
+								$("complete = true;");
+								$("synchronized (this)",()->{
+									$("notify();");
+								});
+							});	
+						},";");
+						break;
+					case GOOGLE_DATASTORE:
 						$("public static void clearDB()",()->{
 							$if("com.google.appengine.api.utils.SystemProperty.environment.value() == com.google.appengine.api.utils.SystemProperty.Environment.Value.Development",()->{
 								for(EntityClass entidad : back.entitiesList) {
@@ -79,7 +105,6 @@ public class ModelGenerator {
 								}
 							});
 						});
-					if(db.type == DBType.GOOGLE_DATASTORE)
 						$("public static void migrateDBToNamespace(String originNamespace, String targetNamespace)",()->{
 							$if("java.util.Objects.equals(originNamespace, targetNamespace)",()->{
 								$("throw new jcrystal.errors.ErrorException(\"Can't migrate from \" + originNamespace + \" to \" + targetNamespace);");
@@ -99,6 +124,10 @@ public class ModelGenerator {
 								}
 							}
 						});
+						break;
+					default:
+						break;
+					}
 				});
 				context.output.exportFile(this, "jcrystal/context/Utils" + StringUtils.capitalize(db.getDBName())+".java");
 			}};

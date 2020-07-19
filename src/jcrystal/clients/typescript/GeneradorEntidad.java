@@ -1,4 +1,4 @@
-package jcrystal.clients.angular;
+package jcrystal.clients.typescript;
 
 import static java.lang.reflect.Modifier.PUBLIC;
 import static java.lang.reflect.Modifier.STATIC;

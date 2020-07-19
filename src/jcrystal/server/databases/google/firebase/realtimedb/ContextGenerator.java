@@ -1,8 +1,5 @@
 package jcrystal.server.databases.google.firebase.realtimedb;
 
-
-import java.io.FileInputStream;
-
 import jcrystal.configs.server.dbs.DBType;
 import jcrystal.main.data.ClientContext;
 import jcrystal.server.databases.AbsContextGenerator;
@@ -52,6 +49,9 @@ public class ContextGenerator extends AbsContextGenerator {
 				$SingleCatch("Exception ex",  "ex.printStackTrace();");
 			});
 			$("return credentials;");
+		});
+		$("public com.google.firebase.database.DatabaseReference databaseReference(String path)", () -> {
+			$("return com.google.firebase.database.FirebaseDatabase.getInstance().getReference(path);");			
 		});
 	}
 

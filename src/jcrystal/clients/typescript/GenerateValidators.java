@@ -1,4 +1,4 @@
-package jcrystal.clients.angular;
+package jcrystal.clients.typescript;
 
 import java.io.File;
 import java.util.TreeSet;
