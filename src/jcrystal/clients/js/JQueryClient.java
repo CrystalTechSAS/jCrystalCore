@@ -457,6 +457,9 @@ public class JQueryClient extends AbsClientGenerator<Client> {
 					$("toJSON : function()",()->{
 						$("return this.strValue;");
 					},",");
+					$("valueOf : function()",()->{
+						$("return this.strValue;");
+					},",");
 					$("parse : function()",()->{
 						$ifNull("this.dateValue",()->{
 							$("this.dateValue = new Date(Date.UTC("+tokenizer.apply("y")+", "+tokenizer.apply("M")+", "+tokenizer.apply("d")+", "+tokenizer.apply("H")+", "+tokenizer.apply("m")+", "+tokenizer.apply("s")+"));");
