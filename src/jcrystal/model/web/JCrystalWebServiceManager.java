@@ -143,9 +143,9 @@ public class JCrystalWebServiceManager {
 		if(clientConfig == null || clientConfig.configs.size()<=1)
 			return "Default";
 		
-		JAnnotation b = clase.getJAnnotation(clientConfig.annotationClass.name());
+		JAnnotation b = clase.getJAnnotation(clientConfig.clientAnnotationClass.name());
 		if(b == null)
-			b = clase.getPackage().getJAnnotation(clientConfig.annotationClass.name());
+			b = clase.getPackage().getJAnnotation(clientConfig.clientAnnotationClass.name());
 		if(b==null)
 			return "Default";
 		return ClientGeneratorDescriptor.getConfigId(b);

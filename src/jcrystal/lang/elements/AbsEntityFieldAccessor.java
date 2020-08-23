@@ -56,7 +56,7 @@ public abstract class AbsEntityFieldAccessor extends AbsJAccessor{
 		this.prefix = null;
 		this.isKey = true;
 		EntityClass target = field.getTargetEntity();
-		if(target != null) {
+		if(!field.isClientSideOnly && target != null) {
 			if(target.key != null) {
 				if(field.type().isIterable())
 					this.type = field.getTargetEntity().key.getSingleKeyType().createListType();

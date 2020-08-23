@@ -844,7 +844,7 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 				$("let $Array" + f.name() + " = json." + f.name() + " as any[];");
 				$if("$Array"+  f.name(), ()->{
 					final IJType tipoParamero = f.type().getInnerTypes().get(0);
-					if(f.isJAnnotationPresent(descriptor.annotationClass.name()) && tipoParamero.name().equals("java.lang.Object")) {
+					if(f.isJAnnotationPresent(descriptor.clientAnnotationClass.name()) && tipoParamero.name().equals("java.lang.Object")) {
 						$("ret." + f.name() + " = $Array" + f.name() + ";");
 					}else {
 						$("ret." + f.name() + " = [];");
@@ -873,7 +873,8 @@ public class WebClientTypescript extends AbsClientGenerator<Client>{
 				if(entidad == null)
 					throw new NullPointerException("Referencia " + f.name()+" de tipo " + f.type().name()+" no existe la entidad target");
 				$("ret." + f.name() + " = (json." + f.name() + " as " + $($convert(entidad.key.getSingleKeyType())) +");");
-			}else if(f.isJAnnotationPresent(descriptor.annotationClass)) {
+			}else if(f.isJAnnotationPresent(descriptor.clientAnnotationClass)) {
+				
 				EntityClass entidad = context.data.entidades.get(f.type());
 				if(entidad == null) {
 					if(f.type().is(Object.class));

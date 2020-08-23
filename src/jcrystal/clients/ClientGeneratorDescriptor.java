@@ -27,7 +27,7 @@ public class ClientGeneratorDescriptor<T extends Client> {
 	
 	public Map<String, IInternalConfig> configs = new TreeMap<>();
 	
-	public IJType annotationClass;
+	public IJType clientAnnotationClass;
 	
 	protected final ClientContext context;
 	
@@ -35,7 +35,7 @@ public class ClientGeneratorDescriptor<T extends Client> {
 		this.context = context;
 		this.client = client;
 		client.configs.stream().forEach(f->configs.put(f.id()==null?"Default":f.id(), f));
-		this.annotationClass = annotationClass;
+		this.clientAnnotationClass = annotationClass;
 	}
 
 	public ClientGeneratorDescriptor(ClientContext context, T client) {
@@ -46,12 +46,12 @@ public class ClientGeneratorDescriptor<T extends Client> {
 			client.configs.stream().forEach(f->configs.put(f.id()==null?"Default":f.id(), f));
 			try {
 				if(client.type == ClientType.ADMIN)
-					this.annotationClass = context.jClassLoader.load(AdminClient.class, null);
+					this.clientAnnotationClass = context.jClassLoader.load(AdminClient.class, null);
 				else
-					this.annotationClass = new JType(context.jClassLoader, "jcrystal.clients.Client"+StringUtils.capitalize(client.id));
+					this.clientAnnotationClass = new JType(context.jClassLoader, "jcrystal.clients.Client"+StringUtils.capitalize(client.id));
 				
 			} catch (Exception e) {
-				this.annotationClass = null;
+				this.clientAnnotationClass = null;
 				e.printStackTrace();
 			}
 		}
@@ -70,7 +70,7 @@ public class ClientGeneratorDescriptor<T extends Client> {
 					}
 					else if(f.keyData == null)
 						levels.add(f.level, entidad, f);
-				}else if(f.level == null && f.isJAnnotationPresent(this.annotationClass)) {
+				}else if(f.level == null && f.isJAnnotationPresent(this.clientAnnotationClass)) {
 					levels.add(null, entidad, f);
 				}
 			};

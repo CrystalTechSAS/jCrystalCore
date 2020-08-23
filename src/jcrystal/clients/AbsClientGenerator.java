@@ -111,14 +111,14 @@ public abstract class AbsClientGenerator<T extends Client> {
 	public boolean registrar(JCrystalWebServiceManager controller, JCrystalWebService metodo){
 		JAnnotation annotation = null;
 		if(controller.isMultipart) {
-			if((annotation = controller.clase.getJAnnotationWithAncestorCheck(descriptor.annotationClass.name())) != null) {
+			if((annotation = controller.clase.getJAnnotationWithAncestorCheck(descriptor.clientAnnotationClass.name())) != null) {
 				Set<IWServiceEndpoint> metodosMobile = endpoints.get(controller.getRutaClase());
 				IWServiceEndpoint endpoint = new JCrystalMultipartWebService(context, controller);
 				metodosMobile.add(endpoint);
 				endpoint.gatherRequiredTypes(requiredClasses);
 				return true;
 			}
-		}else if((annotation = metodo.getJAnnotationWithAncestorCheck(descriptor.annotationClass.name())) != null){
+		}else if((annotation = metodo.getJAnnotationWithAncestorCheck(descriptor.clientAnnotationClass.name())) != null){
 			Set<IWServiceEndpoint> metodosMobile = endpoints.get(controller.getRutaClase());
 			metodosMobile.add(metodo);
 			IInternalConfig config =  descriptor.configs.get(ClientGeneratorDescriptor.getConfigId(annotation));

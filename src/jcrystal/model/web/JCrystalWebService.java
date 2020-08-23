@@ -178,7 +178,7 @@ public class JCrystalWebService implements IWServiceEndpoint{
 		if(clientConfig == null || clientConfig.configs.size() <= 1)
 			return "Default";
 		
-		JAnnotation b = unwrappedMethod.getJAnnotation(clientConfig.annotationClass.name());
+		JAnnotation b = unwrappedMethod.getJAnnotation(clientConfig.clientAnnotationClass.name());
 		if(b != null)
 			return ClientGeneratorDescriptor.getConfigId(b);
 

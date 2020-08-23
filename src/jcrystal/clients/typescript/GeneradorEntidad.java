@@ -64,7 +64,7 @@ public class GeneradorEntidad extends AbsEntityGenerator<WebClientTypescript>{
 							$import(type);
 						else if (type.isAnnotationPresent(jEntity.class)) {
 							EntityClass target = client.context.data.entidades.get(type); 
-							if(target.key == null || !target.key.isSimple())
+							if(f.isClientSideOnly || target.key == null || !target.key.isSimple())
 								$import(type);
 						}
 					});

@@ -42,7 +42,7 @@ import jcrystal.utils.langAndPlats.JavascriptCode;
 public class WebAdminClient extends AbsClientGenerator<Client>{
 	
 	TreeMap<String, AdminPageDescriptor> PAGES = new TreeMap<>();
-	JQueryClient jQueryC = new JQueryClient(new ClientGeneratorDescriptor<Client>(context, descriptor.client, descriptor.annotationClass));
+	JQueryClient jQueryC = new JQueryClient(new ClientGeneratorDescriptor<Client>(context, descriptor.client, descriptor.clientAnnotationClass));
 	
 	public WebAdminClient(ClientGeneratorDescriptor<Client> descriptor){
 		super(descriptor);

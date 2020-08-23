@@ -44,7 +44,7 @@ import com.google.appengine.api.datastore.Text;
 */
 public class EntityField implements Comparable<EntityField>, IndexableField{
 	public final JVariable f;
-	public final boolean isSelector, isstatic, isFinal, isAutoNow, isEntityProperty, isConstant;
+	public final boolean isSelector, isstatic, isFinal, isAutoNow, isEntityProperty, isConstant, isClientSideOnly;
 	public IndexType indexType;
 	public final boolean isAccountField;
 	public final String dbName;
@@ -128,6 +128,7 @@ public class EntityField implements Comparable<EntityField>, IndexableField{
 				editable = false;
 			}
 		}
+		this.isClientSideOnly = level == null;
 	}
 	public boolean isPrimitive(){
 		return f.type().isPrimitive();
