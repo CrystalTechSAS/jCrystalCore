@@ -279,6 +279,22 @@ public class GeneradorEntidad extends AbsEntityGenerator<WebClientTypescript>{
 				$("import { " + entidad.clase.getSimpleName() + lastLevel.baseName()+" } from \"./"+entidad.clase.getSimpleName()+lastLevel.baseName()+"\";");
 			else if(entidad.key != null && !entidad.key.isSimple())
 				$("import { " + entidad.clase.getSimpleName() + " } from \"./"+entidad.clase.getSimpleName()+"\";");
+			
+			final List<EntityField> levelFields = ListUtils.join(client.descriptor.getFields(entidad).get(level), client.descriptor.getFields(entidad).get(null));
+			for(final EntityField f : levelFields){
+				f.type().iterate(type->{
+					if(type.isEnum() || type.isJAnnotationPresent(CrystalDate.class))
+						$import(type);
+					else if (type.isAnnotationPresent(jEntity.class)) {
+						EntityClass target = client.context.data.entidades.get(type); 
+						if(f.isClientSideOnly || target.key == null || !target.key.isSimple())
+							$import(type);
+					}
+				});
+			}
+			client.requiredClasses.addAll(imports);
+			$imports();
+			
 			$("export interface " + entidad.clase.getSimpleName()+level.baseName() + (lastLevel!=null?" extends "+entidad.clase.getSimpleName()+lastLevel.baseName():""), ()->{
 				HashSet<String> fields = new HashSet<String>();
 				Consumer<EntityField> procesador = f -> {
@@ -300,13 +316,11 @@ public class GeneradorEntidad extends AbsEntityGenerator<WebClientTypescript>{
 							
 					}
 				};
-				client.descriptor.getFields(entidad).get(level).forEach(procesador);
-				client.descriptor.getFields(entidad).get(null).forEach(procesador);
+				levelFields.forEach(procesador);
 				if(lastLevel == null && entidad.key != null)
 					$("$Key() : " + $($convert(entidad.key.getSingleKeyType()))+";");
 			});
-			$imports();
-			client.requiredClasses.addAll(imports);
+
 			client.exportFile(this, client.paqueteEntidades.replace(".", File.separator) + File.separator + entidad.clase.getSimpleName()+level.baseName() + ".ts");
 		}};
 	}
